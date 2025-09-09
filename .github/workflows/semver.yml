@@ -1,0 +1,70 @@
+name: Create Semver Tag
+
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  semver-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+      issues: read
+      pull-requests: read
+      checks: read
+      deployments: read
+      statuses: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Get latest semver tag
+      id: get_tag
+      run: |
+        latest_tag=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+        echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+    - name: Determine version bump type
+      id: bump_type
+      run: |
+        bump="patch"
+        if [[ "${{ github.event.pull_request.labels[*].name }}" == *"semver:major"* ]]; then
+          bump="major"
+        elif [[ "${{ github.event.pull_request.labels[*].name }}" == *"semver:minor"* ]]; then
+          bump="minor"
+        fi
+        echo "bump_type=$bump" >> $GITHUB_OUTPUT
+    - name: Calculate next version
+      id: next_version
+      run: |
+        latest="${{ steps.get_tag.outputs.latest_tag }}"
+        bump="${{ steps.bump_type.outputs.bump_type }}"
+        if [[ -z "$latest" ]]; then
+          next="v1.0.0"
+        else
+          IFS='.' read -r major minor patch <<<"${latest#v}"
+          if [[ "$bump" == "major" ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [[ "$bump" == "minor" ]]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+          next="v${major}.${minor}.${patch}"
+        fi
+        echo "next_tag=$next" >> $GITHUB_OUTPUT
+    - name: Create new tag
+      env:
+        NEXT_TAG: ${{ steps.next_version.outputs.next_tag }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "$NEXT_TAG"
+        git push origin "$NEXT_TAG"
