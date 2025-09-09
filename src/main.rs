@@ -77,7 +77,19 @@ async fn oauth_token(
             let status = axum::http::StatusCode::from_u16(resp.status().as_u16()).unwrap();
             let body = resp.bytes().await.unwrap_or_default();
             debug!("/oauth/token response status: {}", status);
-            (status, body).into_response()
+                // Try to parse the response as JSON, inject created_at, else return raw body
+                match serde_json::from_slice::<serde_json::Value>(&body) {
+                    Ok(mut json_body) => {
+                        use chrono::Utc;
+                        let now = Utc::now().timestamp();
+                        json_body["created_at"] = serde_json::json!(now);
+                        (status, Json(json_body)).into_response()
+                    }
+                    Err(_) => {
+                        // If not JSON, just return the raw body
+                        (status, body).into_response()
+                    }
+                }
         }
         Err(e) => {
             error!("Failed to reach Authentik for /oauth/token: {}", e);
