@@ -6,6 +6,6 @@ COPY . .
 RUN cargo build --release
 
 FROM scratch
-COPY --from=builder /app/target/release/authentik-gitlab-proxy /
+COPY --from=builder /app/target/release/plane-authentik-proxy /
 EXPOSE 8080
-ENTRYPOINT ["/authentik-gitlab-proxy"]
+ENTRYPOINT ["/plane-authentik-proxy"]
