@@ -4,7 +4,7 @@ COPY . .
 RUN cargo build --release
 
 FROM alpine:latest as copylibs
-RUN apk add --no-cache ldd rsync
+RUN apk add --no-cache rsync
 WORKDIR /out
 COPY --from=builder /app/target/release/authentik-gitlab-proxy /out/
 RUN ldd /out/authentik-gitlab-proxy | awk '{print $3}' | grep -v '^$' | xargs -I '{}' rsync -R '{}' /out/
