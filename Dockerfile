@@ -1,5 +1,5 @@
-FROM rust:1.89-slim as builder
-RUN apt-get update && apt-get install -y libssl-dev
+FROM rust:1.89-slim AS builder
+RUN apt-get update && apt-get install -y libssl-dev libzstd-dev
 
 ENV OPENSSL_STATIC=1 \
     OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu \
