@@ -1,0 +1,15 @@
+FROM rust:1.89 as builder
+WORKDIR /app
+COPY . .
+RUN cargo build --release
+
+FROM alpine:latest as copylibs
+RUN apk add --no-cache ldd rsync
+WORKDIR /out
+COPY --from=builder /app/target/release/authentik-gitlab-proxy /out/
+RUN ldd /out/authentik-gitlab-proxy | awk '{print $3}' | grep -v '^$' | xargs -I '{}' rsync -R '{}' /out/
+
+FROM scratch
+COPY --from=copylibs /out/ /
+EXPOSE 8080
+ENTRYPOINT ["/authentik-gitlab-proxy"]
