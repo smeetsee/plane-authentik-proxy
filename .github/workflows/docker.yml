@@ -38,6 +38,8 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Set platform pair
         id: set_platform_pair
@@ -85,7 +87,7 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}-${{ steps.set_platform_pair.outputs.platform_pair }}
+            ${{ steps.meta.outputs.tags }}-${{ steps.set_platform_pair.outputs.platform_pair }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push=${{ github.event_name != 'pull_request' }}
           file: ./Dockerfile
@@ -121,9 +123,9 @@ jobs:
       - name: Create manifest list and push
         run: |
           docker buildx imagetools create \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}-linux-amd64 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}-linux-arm64
+            -t ${{ needs.docker.outputs.tags }} \
+            ${{ needs.docker.outputs.tags }}-linux-amd64 \
+            ${{ needs.docker.outputs.tags }}-linux-arm64
         env:
           VERSION: ${{ env.VERSION }}
       - name: Tag image as latest
@@ -131,10 +133,10 @@ jobs:
         run: |
           docker buildx imagetools create \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}-linux-amd64 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}-linux-arm64
+            ${{ needs.docker.outputs.tags }}-linux-amd64 \
+            ${{ needs.docker.outputs.tags }}-linux-arm64
         env:
           VERSION: ${{ env.VERSION }}
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}
+          docker buildx imagetools inspect ${{ needs.docker.outputs.tags }}
