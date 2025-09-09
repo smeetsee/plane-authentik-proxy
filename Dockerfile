@@ -7,7 +7,7 @@ RUN cargo build --release
 RUN ldd /app/target/release/plane-authentik-proxy | grep -o '/[^ ]*' | xargs -r -I{} rsync -aL --ignore-missing-args {} /out/
 
 FROM scratch
-COPY --from=builder /out /
+COPY --from=builder /out /lib
 COPY --from=builder /app/target/release/plane-authentik-proxy /
 EXPOSE 8080
 ENTRYPOINT ["/plane-authentik-proxy"]
