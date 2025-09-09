@@ -1,9 +1,9 @@
-FROM rust:1.89 as builder
+FROM rust:1.89-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN cargo build --release
 
-FROM alpine:latest as copylibs
+FROM alpine:latest AS copylibs
 RUN apk add --no-cache rsync
 WORKDIR /out
 COPY --from=builder /app/target/release/authentik-gitlab-proxy /out/
