@@ -3,18 +3,15 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Redirect},
     routing::{get, post},
-    Json, Router, Server
+    Json, Router
 };
-use axum_extra::extract::TypedHeader;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use serde::{Deserialize};
+use std::{net::SocketAddr, sync::Arc};
+use tokio;
 
 #[derive(Clone)]
 struct Config {
     authentik_url: String,
-    client_id: String,
-    client_secret: String,
-    redirect_uri: String,
 }
 
 #[derive(Deserialize)]
@@ -42,7 +39,7 @@ async fn oauth_authorize(
     // Redirect to Authentik's authorize endpoint, passing all params
     let mut url = format!(
         "{}/authorize?client_id={}&redirect_uri={}&response_type={}",
-        config.authentik_url, config.client_id, q.redirect_uri, q.response_type
+        config.authentik_url, q.client_id, q.redirect_uri, q.response_type
     );
     if let Some(state) = q.state {
         url.push_str(&format!("&state={}", state));
@@ -63,8 +60,8 @@ async fn oauth_token(
         ("grant_type", form.grant_type.as_str()),
         ("code", form.code.as_str()),
         ("redirect_uri", form.redirect_uri.as_str()),
-        ("client_id", config.client_id.as_str()),
-        ("client_secret", config.client_secret.as_str()),
+        ("client_id", form.client_id.as_str()),
+        ("client_secret", form.client_secret.as_str()),
     ];
     let res = client
         .post(format!("{}/token", config.authentik_url))
@@ -74,9 +71,9 @@ async fn oauth_token(
 
     match res {
         Ok(resp) => {
-            let status = resp.status();
+            let status = axum::http::StatusCode::from_u16(resp.status().as_u16()).unwrap();
             let body = resp.bytes().await.unwrap_or_default();
-            (status, body)
+            (status, body).into_response()
         }
         Err(_) => (
             StatusCode::BAD_GATEWAY,
@@ -100,8 +97,8 @@ async fn api_v4_user(
 
     match res {
         Ok(resp) => {
-            let status = resp.status();
-            let mut userinfo: serde_json::Value = match resp.json().await {
+            let status = axum::http::StatusCode::from_u16(resp.status().as_u16()).unwrap();
+            let userinfo: serde_json::Value = match resp.json().await {
                 Ok(json) => json,
                 Err(_) => {
                     return (
@@ -133,9 +130,6 @@ async fn api_v4_user(
 async fn main() {
     let config = Arc::new(Config {
         authentik_url: std::env::var("AUTHENTIK_URL").expect("AUTHENTIK_URL not set"),
-        client_id: std::env::var("AUTHENTIK_CLIENT_ID").expect("AUTHENTIK_CLIENT_ID not set"),
-        client_secret: std::env::var("AUTHENTIK_CLIENT_SECRET").expect("AUTHENTIK_CLIENT_SECRET not set"),
-        redirect_uri: std::env::var("AUTHENTIK_REDIRECT_URI").expect("AUTHENTIK_REDIRECT_URI not set"),
     });
 
     let app = Router::new()
@@ -146,8 +140,6 @@ async fn main() {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     println!("Proxy running at {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
