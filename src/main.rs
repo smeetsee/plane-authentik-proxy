@@ -46,9 +46,13 @@ async fn oauth_authorize(
     if let Some(state) = q.state {
         url.push_str(&format!("&state={}", state));
     }
-    if let Some(scope) = q.scope {
-        url.push_str(&format!("&scope={}", scope));
-    }
+    // Always include 'openid' in the scope
+    let scope_str = match &q.scope {
+        Some(scope) if !scope.split_whitespace().any(|s| s == "openid") => format!("openid {}", scope),
+        Some(scope) => scope.clone(),
+        None => "openid".to_string(),
+    };
+    url.push_str(&format!("&scope={}", scope_str));
     Redirect::temporary(&url)
 }
 
