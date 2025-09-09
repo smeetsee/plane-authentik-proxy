@@ -1,4 +1,5 @@
 FROM rust:1.89-alpine AS builder
+RUN apk add --no-cache pkgconfig
 WORKDIR /app
 COPY . .
 RUN cargo build --release
