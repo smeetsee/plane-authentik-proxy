@@ -119,11 +119,24 @@ async fn api_v4_user(
             };
             debug!("/api/v4/user response: {:?}", userinfo);
             // Convert Authentik userinfo to GitLab's schema if needed
+            // Compute avatar_url: use userinfo avatar_url if present, else Gravatar from email
+            let avatar_url = if let Some(serde_json::Value::String(url)) = userinfo.get("avatar_url") {
+                serde_json::Value::String(url.clone())
+            } else if let Some(serde_json::Value::String(email)) = userinfo.get("email") {
+                use md5::{Md5, Digest};
+                let mut hasher = Md5::new();
+                hasher.update(email.trim().to_lowercase());
+                let hash = format!("{:x}", hasher.finalize());
+                serde_json::Value::String(format!("https://www.gravatar.com/avatar/{}?d=identicon", hash))
+            } else {
+                serde_json::Value::Null
+            };
+
             let gitlab_user = serde_json::json!({
                 "id": userinfo.get("sub").unwrap_or(&serde_json::Value::Null),
                 "email": userinfo.get("email").unwrap_or(&serde_json::Value::Null),
                 "name": userinfo.get("name").unwrap_or(&serde_json::Value::Null),
-                "avatar_url": userinfo.get("avatar_url").unwrap_or(&serde_json::Value::Null),
+                "avatar_url": avatar_url,
                 "family_name": userinfo.get("family_name").unwrap_or(&serde_json::Value::Null),
             });
             (status, Json(gitlab_user)).into_response()
