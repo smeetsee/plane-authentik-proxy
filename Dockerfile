@@ -1,16 +1,15 @@
-FROM rust:1.89-alpine AS builder
-RUN apk add --no-cache pkgconfig openssl-dev build-base libc-dev musl-dev libssl-static libcrypto-static
+FROM rust:1.89-slim as builder
+RUN apt-get update && apt-get install -y libssl-dev
+
+ENV OPENSSL_STATIC=1 \
+    OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu \
+    OPENSSL_INCLUDE_DIR=/usr/include
+
 WORKDIR /app
 COPY . .
 RUN cargo build --release
 
-FROM alpine:latest AS copylibs
-RUN apk add --no-cache rsync
-WORKDIR /out
-COPY --from=builder /app/target/release/authentik-gitlab-proxy /out/
-RUN ldd /out/authentik-gitlab-proxy | awk '{print $3}' | grep -v '^$' | xargs -I '{}' rsync -R '{}' /out/
-
 FROM scratch
-COPY --from=copylibs /out/ /
+COPY --from=builder /app/target/release/authentik-gitlab-proxy /
 EXPOSE 8080
 ENTRYPOINT ["/authentik-gitlab-proxy"]
