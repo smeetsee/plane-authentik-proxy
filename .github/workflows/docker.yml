@@ -103,7 +103,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
-        run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }} -y
+        run: echo "${{ steps.meta.outputs.tags }}-${{ steps.set_platform_pair.outputs.platform_pair }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }} -y
 
   merge:
     needs: [docker]
