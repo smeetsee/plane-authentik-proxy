@@ -1,5 +1,5 @@
 FROM rust:1.89-alpine AS builder
-RUN apk add --no-cache pkgconfig openssl-dev build-base libc-dev musl-dev
+RUN apk add --no-cache pkgconfig openssl-dev build-base libc-dev musl-dev libssl-static libcrypto-static
 WORKDIR /app
 COPY . .
 RUN cargo build --release
