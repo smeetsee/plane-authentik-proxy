@@ -20,10 +20,7 @@ This proxy lets apps expecting a GitLab OAuth interface (e.g. Plane) authenticat
 Set the following environment variables:
 
 ```env
-AUTHENTIK_URL=https://auth.example.com/application/o
-AUTHENTIK_CLIENT_ID=your-client-id
-AUTHENTIK_CLIENT_SECRET=your-client-secret
-AUTHENTIK_REDIRECT_URI=https://your.plane.instance/auth/gitlab/callback/
+AUTHENTIK_URL=https://auth.example.com/application/o/plane/
 ```
 
 ## Authentik Setup
