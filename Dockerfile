@@ -1,10 +1,6 @@
 FROM rust:1.89-slim AS builder
 RUN apt-get update && apt-get install -y libssl-dev libzstd-dev
 
-ENV OPENSSL_STATIC=1 \
-    OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu \
-    OPENSSL_INCLUDE_DIR=/usr/include
-
 WORKDIR /app
 COPY . .
 RUN cargo build --release
