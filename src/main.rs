@@ -5,6 +5,7 @@ use axum::{
     routing::{get, post},
     Json, Router
 };
+use log::{info, error, debug};
 use serde::{Deserialize};
 use std::{net::SocketAddr, sync::Arc};
 use tokio;
@@ -36,6 +37,7 @@ async fn oauth_authorize(
     State(config): State<Arc<Config>>,
     Query(q): Query<AuthorizeQuery>,
 ) -> impl IntoResponse {
+    info!("Handling /oauth/authorize for client_id: {}", q.client_id);
     // Redirect to Authentik's authorize endpoint, passing all params
     let mut url = format!(
         "{}/authorize/?client_id={}&redirect_uri={}&response_type={}",
@@ -54,6 +56,7 @@ async fn oauth_token(
     State(config): State<Arc<Config>>,
     Form(form): Form<TokenForm>,
 ) -> impl IntoResponse {
+    info!("Handling /oauth/token for client_id: {}", form.client_id);
     // Just forward the code exchange to Authentik, return response as-is
     let client = reqwest::Client::new();
     let params = [
@@ -73,13 +76,17 @@ async fn oauth_token(
         Ok(resp) => {
             let status = axum::http::StatusCode::from_u16(resp.status().as_u16()).unwrap();
             let body = resp.bytes().await.unwrap_or_default();
+            debug!("/oauth/token response status: {}", status);
             (status, body).into_response()
         }
-        Err(_) => (
-            StatusCode::BAD_GATEWAY,
-            Json(serde_json::json!({"error": "authentik_unreachable"})),
-        )
-            .into_response(),
+        Err(e) => {
+            error!("Failed to reach Authentik for /oauth/token: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(serde_json::json!({"error": "authentik_unreachable"})),
+            )
+                .into_response()
+        }
     }
 }
 
@@ -87,6 +94,7 @@ async fn api_v4_user(
     State(config): State<Arc<Config>>,
     axum_extra::extract::TypedHeader(headers): axum_extra::extract::TypedHeader<headers::Authorization<headers::authorization::Bearer>>,
 ) -> impl IntoResponse {
+    info!("Handling /api/v4/user endpoint");
     // Forward /api/v4/user to Authentik's userinfo endpoint, return as-is (with GitLab schema conversion if needed)
     let client = reqwest::Client::new();
     let res = client
@@ -100,7 +108,8 @@ async fn api_v4_user(
             let status = axum::http::StatusCode::from_u16(resp.status().as_u16()).unwrap();
             let userinfo: serde_json::Value = match resp.json().await {
                 Ok(json) => json,
-                Err(_) => {
+                Err(e) => {
+                    error!("Failed to parse userinfo response: {}", e);
                     return (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(serde_json::json!({"error": "invalid_response"})),
@@ -108,6 +117,7 @@ async fn api_v4_user(
                         .into_response();
                 }
             };
+            debug!("/api/v4/user response: {:?}", userinfo);
             // Convert Authentik userinfo to GitLab's schema if needed
             let gitlab_user = serde_json::json!({
                 "id": userinfo.get("sub").unwrap_or(&serde_json::Value::Null),
@@ -118,16 +128,21 @@ async fn api_v4_user(
             });
             (status, Json(gitlab_user)).into_response()
         }
-        Err(_) => (
-            StatusCode::BAD_GATEWAY,
-            Json(serde_json::json!({"error": "authentik_unreachable"})),
-        )
-            .into_response(),
+        Err(e) => {
+            error!("Failed to reach Authentik for /api/v4/user: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(serde_json::json!({"error": "authentik_unreachable"})),
+            )
+                .into_response()
+        }
     }
 }
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let config = Arc::new(Config {
         authentik_url: std::env::var("AUTHENTIK_URL").expect("AUTHENTIK_URL not set"),
     });
@@ -139,7 +154,7 @@ async fn main() {
         .with_state(config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    println!("Proxy running at {}", addr);
+    info!("Proxy running at {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
