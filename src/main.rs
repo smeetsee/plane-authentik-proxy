@@ -3,8 +3,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Redirect},
     routing::{get, post},
-    Json, Router,
+    Json, Router, Server
 };
+use axum_extra::extract::TypedHeader;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
@@ -87,7 +88,7 @@ async fn oauth_token(
 
 async fn api_v4_user(
     State(config): State<Arc<Config>>,
-    axum::extract::TypedHeader(headers): axum::extract::TypedHeader<headers::Authorization<headers::authorization::Bearer>>,
+    axum_extra::extract::TypedHeader(headers): axum_extra::extract::TypedHeader<headers::Authorization<headers::authorization::Bearer>>,
 ) -> impl IntoResponse {
     // Forward /api/v4/user to Authentik's userinfo endpoint, return as-is (with GitLab schema conversion if needed)
     let client = reqwest::Client::new();
