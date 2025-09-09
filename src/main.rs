@@ -38,7 +38,7 @@ async fn oauth_authorize(
 ) -> impl IntoResponse {
     // Redirect to Authentik's authorize endpoint, passing all params
     let mut url = format!(
-        "{}/authorize?client_id={}&redirect_uri={}&response_type={}",
+        "{}/authorize/?client_id={}&redirect_uri={}&response_type={}",
         config.authentik_url, q.client_id, q.redirect_uri, q.response_type
     );
     if let Some(state) = q.state {
@@ -64,7 +64,7 @@ async fn oauth_token(
         ("client_secret", form.client_secret.as_str()),
     ];
     let res = client
-        .post(format!("{}/token", config.authentik_url))
+        .post(format!("{}/token/", config.authentik_url))
         .form(&params)
         .send()
         .await;
@@ -90,7 +90,7 @@ async fn api_v4_user(
     // Forward /api/v4/user to Authentik's userinfo endpoint, return as-is (with GitLab schema conversion if needed)
     let client = reqwest::Client::new();
     let res = client
-        .get(format!("{}/userinfo", config.authentik_url))
+        .get(format!("{}/userinfo/", config.authentik_url))
         .bearer_auth(headers.token())
         .send()
         .await;
