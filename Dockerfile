@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y pkg-config libssl-dev libzstd-dev rsync
 WORKDIR /app
 COPY . .
 RUN cargo build --release
-RUN ldd /app/target/release/plane-authentik-proxy | awk '{print $3}' | grep -v '^$' | xargs -I '{}' rsync -R '{}' /out/
+RUN ldd /app/target/release/plane-authentik-proxy | grep -o '/[^ ]*' | xargs -r -I{} rsync -aL --ignore-missing-args {} /out/
 
 FROM scratch
 COPY --from=builder /out /
