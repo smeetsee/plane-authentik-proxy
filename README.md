@@ -52,17 +52,12 @@ AUTHENTIK_URL=https://auth.example.com/application/o/plane/
      ```
    - Save and test the userinfo endpoint
 
-## Build and Run
-
-```sh
-docker build -t authentik-gitlab-proxy .
-docker run -e AUTHENTIK_URL=... -e AUTHENTIK_CLIENT_ID=... -e AUTHENTIK_CLIENT_SECRET=... -e AUTHENTIK_REDIRECT_URI=... -p 8080:8080 authentik-gitlab-proxy
-```
+## How to pull image
 
 Or pull from GHCR (after first pipeline run):
 
 ```sh
-docker pull ghcr.io/<your-gh-username>/authentik-gitlab-proxy:latest
+docker pull ghcr.io/smeetsee/authentik-gitlab-proxy:latest
 ```
 
 ## Expose via Traefik
