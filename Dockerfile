@@ -1,4 +1,4 @@
-FROM rust:1.90-slim AS builder
+FROM rust:1.91-slim AS builder
 RUN apt-get update && apt-get install -y pkg-config libssl-dev libzstd-dev rsync
 
 WORKDIR /app
