@@ -21,7 +21,7 @@ jobs:
       statuses: read
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Get latest semver tag
       id: get_tag
       run: |
