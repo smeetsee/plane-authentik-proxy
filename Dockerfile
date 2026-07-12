@@ -7,8 +7,8 @@ RUN cargo build --release
 RUN ldd /app/target/release/plane-authentik-proxy | grep -o '/[^ ]*' | xargs -r -I{} sh -c 'mkdir -p /out$(dirname {}) && rsync -aL --ignore-missing-args {} /out{}'
 
 FROM scratch
-COPY --from=rust:1.94-slim /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /out/ /
-COPY --from=builder /app/target/release/plane-authentik-proxy /
+COPY --from=rust:1.94-slim --link /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder --link /out/ /
+COPY --from=builder --link /app/target/release/plane-authentik-proxy /
 EXPOSE 8080
 ENTRYPOINT ["/plane-authentik-proxy"]
