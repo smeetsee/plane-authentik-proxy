@@ -1,4 +1,4 @@
-FROM rust:1.94-slim AS builder
+FROM rust:1.97.0-slim AS builder
 RUN apt-get update && apt-get install -y pkg-config libssl-dev libzstd-dev rsync
 
 WORKDIR /app
@@ -7,7 +7,7 @@ RUN cargo build --release
 RUN ldd /app/target/release/plane-authentik-proxy | grep -o '/[^ ]*' | xargs -r -I{} sh -c 'mkdir -p /out$(dirname {}) && rsync -aL --ignore-missing-args {} /out{}'
 
 FROM scratch
-COPY --from=rust:1.94-slim --link /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=rust:1.97.0-slim --link /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder --link /out/ /
 COPY --from=builder --link /app/target/release/plane-authentik-proxy /
 EXPOSE 8080
