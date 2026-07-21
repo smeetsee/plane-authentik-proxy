@@ -142,8 +142,9 @@ async fn api_v4_user(
                 use md5::{Md5, Digest};
                 let mut hasher = Md5::new();
                 hasher.update(email.trim().to_lowercase());
-                let hash = format!("{:x}", hasher.finalize());
-                serde_json::Value::String(format!("https://www.gravatar.com/avatar/{}?d=identicon", hash))
+                let hash = hasher.finalize();
+                let hash_str = hash.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+                serde_json::Value::String(format!("https://www.gravatar.com/avatar/{}?d=identicon", hash_str))
             } else {
                 serde_json::Value::Null
             };
