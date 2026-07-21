@@ -1,5 +1,5 @@
 FROM rust:1.97.0-slim AS builder
-RUN apt-get update && apt-get install -y pkg-config libssl-dev libzstd-dev rsync
+RUN apt-get update && apt-get install -y pkg-config cmake libssl-dev libzstd-dev rsync
 
 WORKDIR /app
 COPY . .
